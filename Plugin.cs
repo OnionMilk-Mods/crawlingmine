@@ -71,7 +71,7 @@ namespace OnionMilk_crawlingmine
 				"General",
 				"enabled",
 				true,
-				"Is crosshair visible?"
+				"Is plugin enabled?"
 			);
 
 			if(!cfgEnabled.Value)
@@ -103,8 +103,24 @@ namespace OnionMilk_crawlingmine
 
 namespace HealthMetrics.Patches
 {
+	[HarmonyPatch(typeof(EnemyAI))]
+	internal class EnemyAIPatches
+	{
+		[HarmonyPatch("ChooseClosestNodeToPosition")]
+		[HarmonyPrefix]
+		private static void ChooseClosestNodeToPosition(ref EnemyAI __instance, Vector3 pos, bool avoidLineOfSight = false, int offset = 0)
+		{
+			if(__instance.allAINodes.Any(n => n == null || n.Equals(null))) {
+				__instance.allAINodes = __instance
+					.allAINodes
+					.Where(n => n != null && !n.Equals(null))
+					.ToArray();
+			}
+		}
+	}
+
 	[HarmonyPatch(typeof(Landmine))]
-	internal class HealthHUDPatches
+	internal class LandminePatches
 	{
 		private static Dictionary<Landmine, float> jumpTimer = new();
 
@@ -117,6 +133,10 @@ namespace HealthMetrics.Patches
 			)
 			{
 				jumpTimer.Add(__instance, Time.time + GetInterval());
+
+				var node = __instance.transform.parent.GetComponentInChildren<ScanNodeProperties>();
+				node.headerText = "Crawling Mine";
+				node.subText = "It crawls around!";
 				Plugin.Log("Planted!");
 			}
 		}
@@ -158,7 +178,7 @@ namespace HealthMetrics.Patches
 				if(possible.Count > 0)
 				{
 					var newpos = possible[UnityEngine.Random.Range(0, possible.Count)];
-					__instance.StartCoroutine(CrawlRoutine(__instance, newpos));
+					__instance.StartCoroutine(CrawlRoutine(__instance.transform.parent, newpos));
 					Plugin.Log($"Jumped! {__instance.transform.position} -> {newpos}");
 					jumpTimer[__instance] = Time.time + GetInterval();
 				}
@@ -170,25 +190,25 @@ namespace HealthMetrics.Patches
 			}
 		}
 
-		private static IEnumerator CrawlRoutine(Landmine mine, Vector3 target)
+		private static IEnumerator CrawlRoutine(Transform mine, Vector3 target)
 		{
 			float time = 0.5f;
-			Vector3 orgPos = mine.transform.position;
+			Vector3 orgPos = mine.position;
 			while(time > 0f)
 			{
 				float t = 1f - (time / 0.5f);
 				var p = Vector3.Lerp(orgPos, target, t);
-				mine.transform.position = p;
+				mine.position = p;
 
 				time -= Time.deltaTime;
 				yield return null;
 			}
-			mine.transform.position = target;
+			mine.position = target;
 		}
 
 		private static IEnumerable<Vector3> Raycast(Vector3 pos)
 		{
-			var hits = Physics.RaycastAll(pos + Vector3.up, Vector3.down, 10f);
+			var hits = Physics.RaycastAll(pos + Vector3.up, Vector3.down, 2.5f);
 			if(hits.Length > 0)
 				return hits.Select(h => h.point);
 			return System.Array.Empty<Vector3>();
