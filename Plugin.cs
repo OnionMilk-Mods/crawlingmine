@@ -155,10 +155,23 @@ namespace HealthMetrics.Patches
 		}
 
 		[HarmonyPatch("Update")]
+		[HarmonyPrefix]
+		private static void SetOffMineAnimation(ref Landmine __instance)
+		{
+			if(crawlCoutine == null)
+				return;
+
+			__instance.StopCoroutine(crawlCoutine);
+		}
+
+		private static Coroutine crawlCoutine;
+
+		[HarmonyPatch("Update")]
 		[HarmonyPostfix]
 		private static void Update(ref Landmine __instance)
 		{
-			if(jumpTimer.TryGetValue(__instance, out float nextJump)
+			if(__instance.IsServer
+			&& jumpTimer.TryGetValue(__instance, out float nextJump)
 			&& nextJump < Time.time
 			)
 			{
@@ -178,7 +191,7 @@ namespace HealthMetrics.Patches
 				if(possible.Count > 0)
 				{
 					var newpos = possible[UnityEngine.Random.Range(0, possible.Count)];
-					__instance.StartCoroutine(CrawlRoutine(__instance.transform.parent, newpos));
+					crawlCoutine = __instance.StartCoroutine(CrawlRoutine(__instance, newpos));
 					Plugin.Log($"Jumped! {__instance.transform.position} -> {newpos}");
 					jumpTimer[__instance] = Time.time + GetInterval();
 				}
@@ -190,20 +203,27 @@ namespace HealthMetrics.Patches
 			}
 		}
 
-		private static IEnumerator CrawlRoutine(Transform mine, Vector3 target)
+		private static IEnumerator CrawlRoutine(Landmine mine, Vector3 target)
 		{
+			if(mine.hasExploded)
+				yield break;
+
 			float time = 0.5f;
-			Vector3 orgPos = mine.position;
+			Transform mineTransform = mine.transform;
+			Vector3 orgPos = mineTransform.position;
 			while(time > 0f)
 			{
+				if(mine.hasExploded)
+					yield break;
+
 				float t = 1f - (time / 0.5f);
 				var p = Vector3.Lerp(orgPos, target, t);
-				mine.position = p;
+				mineTransform.position = p;
 
 				time -= Time.deltaTime;
 				yield return null;
 			}
-			mine.position = target;
+			mineTransform.position = target;
 		}
 
 		private static IEnumerable<Vector3> Raycast(Vector3 pos)
