@@ -192,12 +192,12 @@ namespace HealthMetrics.Patches
 				{
 					var newpos = possible[UnityEngine.Random.Range(0, possible.Count)];
 					crawlCoutine = __instance.StartCoroutine(CrawlRoutine(__instance, newpos));
-					Plugin.Log($"Jumped! {__instance.transform.position} -> {newpos}");
+					//Plugin.Log($"Jumped! {__instance.transform.position} -> {newpos}");
 					jumpTimer[__instance] = Time.time + GetInterval();
 				}
 				else
 				{
-					Plugin.Log("Found 0 possible jump positions, transforming into static...");
+					//Plugin.Log("Found 0 possible jump positions, transforming into static...");
 					jumpTimer.Remove(__instance);
 				}
 			}

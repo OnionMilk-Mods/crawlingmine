@@ -1,3 +1,6 @@
+## v1.0.4 (Released 19-01-2024)
+- Disabled useless debug logs that were spamming the BepIn console
+
 ## v1.0.3 (Released 19-01-2024)
 - Fixed shadows movement after explosion
 
