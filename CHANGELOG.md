@@ -1,3 +1,8 @@
+## v1.0.5 (Released 21-01-2024)
+- Added configurability for mine to turn off the Beep sound for regular mines and crawling ones
+- Fixed lack of proper description when scanned
+- Added few optimizations
+
 ## v1.0.4 (Released 19-01-2024)
 - Disabled useless debug logs that were spamming the BepIn console
 

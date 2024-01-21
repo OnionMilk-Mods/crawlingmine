@@ -22,6 +22,9 @@ namespace OnionMilk_crawlingmine
 		public static ConfigEntry<bool> cfgEnabled;
 
 		public static ConfigEntry<float> cfgJumpMineSpawnChance;
+		
+		public static ConfigEntry<bool> cfgMineSound;
+		public static ConfigEntry<bool> cfgCrawlingMineSound;
 
 		public static ConfigEntry<float> cfgJumpIntervalMin;
 		public static ConfigEntry<float> cfgJumpIntervalMax;
@@ -65,6 +68,20 @@ namespace OnionMilk_crawlingmine
 				"chance",
 				0.1f,
 				"Chance of transforming regular mine into jumping one (0.0-1.0)"
+			);
+
+
+			cfgMineSound = Config.Bind(
+				"Settings",
+				"mineBeepSound",
+				true,
+				"let's you disable beeping sound"
+			);
+			cfgCrawlingMineSound = Config.Bind(
+				"Settings",
+				"crawlingMineBeepSound",
+				true,
+				"let's you disable beeping sound of crawling mine ;)"
 			);
 
 			cfgEnabled = Config.Bind(
@@ -119,26 +136,65 @@ namespace HealthMetrics.Patches
 		}
 	}
 
+	[HarmonyPatch(typeof(StartOfRound))]
+	internal class StartOfRoundPatches
+	{
+		[HarmonyPatch("SceneManager_OnUnloadComplete")]
+		[HarmonyPostfix]
+		private static void SceneManager_OnUnloadComplete(ref StartOfRound __isntance, ulong clientId, string sceneName)
+		{
+			LandminePatches.jumpTimer = new();
+		}
+	}
+
 	[HarmonyPatch(typeof(Landmine))]
 	internal class LandminePatches
 	{
-		private static Dictionary<Landmine, float> jumpTimer = new();
+		public static Dictionary<Landmine, float> jumpTimer = null;
+
+		private static System.Random rnd = null;
 
 		[HarmonyPatch("Start")]
 		[HarmonyPostfix]
 		private static void Start(ref Landmine __instance)
 		{
-			if(__instance.IsServer
-			&& UnityEngine.Random.value < Plugin.cfgJumpMineSpawnChance.Value
-			)
-			{
-				jumpTimer.Add(__instance, Time.time + GetInterval());
+			if(jumpTimer == null)
+				jumpTimer = new();
+			if(rnd == null)
+				rnd = new System.Random(StartOfRound.Instance.randomMapSeed + 2137);
 
+			if(rnd.NextDouble() < Plugin.cfgJumpMineSpawnChance.Value)
+			{
 				var node = __instance.transform.parent.GetComponentInChildren<ScanNodeProperties>();
 				node.headerText = "Crawling Mine";
 				node.subText = "It crawls around!";
-				Plugin.Log("Planted!");
+
+				if(__instance.IsServer)
+				{
+					jumpTimer.Add(__instance, Time.time + GetInterval());
+
+					Plugin.Log("Planted!");
+				}
+				
+				if(!Plugin.cfgCrawlingMineSound.Value)
+				{
+					DisableAudio(__instance);
+				}
 			}
+
+			if(!Plugin.cfgMineSound.Value)
+			{
+				DisableAudio(__instance);
+			}
+
+		}
+
+		private static void DisableAudio(Landmine __instance)
+		{
+			__instance.mineAudio.enabled = false;
+			__instance.mineAudio.volume = 0f;
+			__instance.mineFarAudio.enabled = false;
+			__instance.mineFarAudio.volume = 0f;
 		}
 
 		private static float GetInterval()
