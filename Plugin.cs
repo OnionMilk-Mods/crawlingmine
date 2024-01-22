@@ -139,9 +139,9 @@ namespace HealthMetrics.Patches
 	[HarmonyPatch(typeof(StartOfRound))]
 	internal class StartOfRoundPatches
 	{
-		[HarmonyPatch("SceneManager_OnUnloadComplete")]
+		[HarmonyPatch("ResetPooledObjects")]
 		[HarmonyPostfix]
-		private static void SceneManager_OnUnloadComplete(ref StartOfRound __isntance, ulong clientId, string sceneName)
+		private static void ResetPooledObjects(ref StartOfRound __instance, bool destroy = false)
 		{
 			LandminePatches.jumpTimer = new();
 		}

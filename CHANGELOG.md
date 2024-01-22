@@ -1,3 +1,6 @@
+## v1.0.6 (Released 22-01-2024)
+- Fixed critial error while loading by HarmonyX framework
+
 ## v1.0.5 (Released 21-01-2024)
 - Added configurability for mine to turn off the Beep sound for regular mines and crawling ones
 - Fixed lack of proper description when scanned
